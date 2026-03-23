@@ -1,0 +1,10 @@
+@inject MusicPlayerService Player
+
+@if (Player.CurrentTrack is { } track)
+{
+    <div class="now-playing">
+        <div class="player-album-art" style="width: 200px; height: 200px; font-size: 3rem;">&#9835;</div>
+        <h3>@track.Title</h3>
+        <p style="color: var(--text-secondary);">@track.Artist</p>
+    </div>
+}

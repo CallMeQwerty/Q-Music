@@ -1,0 +1,25 @@
+@inject SourceManagerService SourceManager
+
+<div class="source-selector">
+    @foreach (var source in SourceManager.AvailableSources)
+    {
+        <div class="sidebar-item @(source == SourceManager.ActiveSource ? "active" : "")"
+             @onclick="() => SelectSource(source)">
+            @GetSourceDisplayName(source)
+        </div>
+    }
+</div>
+
+@code {
+    private void SelectSource(MusicSource source)
+    {
+        SourceManager.SetActiveSource(source);
+    }
+
+    private static string GetSourceDisplayName(MusicSource source) => source switch
+    {
+        MusicSource.YouTubeMusic => "YouTube Music",
+        MusicSource.Spotify => "Spotify",
+        _ => source.ToString()
+    };
+}

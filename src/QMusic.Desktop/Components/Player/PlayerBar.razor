@@ -1,0 +1,52 @@
+@inject MusicPlayerService Player
+
+<div class="player-bar">
+    <div class="player-track-info">
+        @if (Player.CurrentTrack is { } track)
+        {
+            <div class="player-album-art">&#9835;</div>
+            <div class="player-track-text">
+                <div class="track-title">@track.Title</div>
+                <div class="track-artist">@track.Artist</div>
+            </div>
+        }
+        else
+        {
+            <div class="player-album-art">&#9835;</div>
+            <div class="player-track-text">
+                <div class="track-title" style="color: var(--text-muted);">Not playing</div>
+            </div>
+        }
+    </div>
+
+    <div class="player-controls">
+        <div class="player-buttons">
+            <button class="player-btn" title="Previous">&#9664;&#9664;</button>
+            <button class="player-btn play-btn" @onclick="TogglePlayPause" title="Play/Pause">
+                @if (Player.State == PlaybackState.Playing)
+                {
+                    <span>&#10074;&#10074;</span>
+                }
+                else
+                {
+                    <span>&#9654;</span>
+                }
+            </button>
+            <button class="player-btn" title="Next">&#9654;&#9654;</button>
+        </div>
+    </div>
+
+    <div class="player-volume">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Vol: @Player.Volume%</span>
+    </div>
+</div>
+
+@code {
+    private void TogglePlayPause()
+    {
+        if (Player.State == PlaybackState.Playing)
+            Player.Pause();
+        else
+            Player.Resume();
+    }
+}

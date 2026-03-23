@@ -1,0 +1,41 @@
+@inject MusicPlayerService Player
+
+<div class="search-container">
+    <input class="search-input"
+           type="text"
+           placeholder="Search for music..."
+           @bind="_query"
+           @bind:event="oninput"
+           @onkeydown="HandleKeyDown" />
+</div>
+
+@if (_results.Count > 0)
+{
+    <div style="margin-top: 20px;">
+        @foreach (var track in _results)
+        {
+            <TrackCard Track="track" />
+        }
+    </div>
+}
+else if (_hasSearched)
+{
+    <div class="welcome" style="height: auto; margin-top: 40px;">
+        <p>No results found</p>
+    </div>
+}
+
+@code {
+    private string _query = string.Empty;
+    private List<TrackDto> _results = [];
+    private bool _hasSearched;
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_query))
+        {
+            _results = (await Player.SearchAsync(_query)).ToList();
+            _hasSearched = true;
+        }
+    }
+}

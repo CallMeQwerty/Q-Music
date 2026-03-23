@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QMusic.Application/QMusic.Application.csproj" />
+    <Project Path="src/QMusic.Desktop/QMusic.Desktop.csproj" />
+    <Project Path="src/QMusic.Domain/QMusic.Domain.csproj" />
+    <Project Path="src/QMusic.Infrastructure/QMusic.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QMusic.Application.Tests/QMusic.Application.Tests.csproj" />
+    <Project Path="tests/QMusic.Domain.Tests/QMusic.Domain.Tests.csproj" />
+    <Project Path="tests/QMusic.Infrastructure.Tests/QMusic.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

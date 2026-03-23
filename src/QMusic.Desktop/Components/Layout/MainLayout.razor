@@ -1,0 +1,19 @@
+@inherits LayoutComponentBase
+
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-brand">QMusic</div>
+
+        <div class="sidebar-section">Sources</div>
+        <SourceSelector />
+
+        <div class="sidebar-section">Library</div>
+        <div class="sidebar-item active">Search</div>
+    </nav>
+
+    <main class="content">
+        @Body
+    </main>
+
+    <PlayerBar />
+</div>
