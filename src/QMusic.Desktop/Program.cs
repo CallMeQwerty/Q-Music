@@ -1,4 +1,4 @@
-using System.Windows;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QMusic.Infrastructure;
 
@@ -16,11 +16,18 @@ public static class Program
     [STAThread]
     public static void Main()
     {
+        // Build configuration from appsettings files.
+        // appsettings.json = defaults (committed), appsettings.local.json = overrides with secrets (gitignored).
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile("appsettings.local.json", optional: true)
+            .Build();
+
         var services = new ServiceCollection();
 
-        // Infrastructure's extension method registers all providers, engines, and app services.
-        // Desktop doesn't need to know about individual implementations — just call AddInfrastructure().
-        services.AddInfrastructure();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddInfrastructure(configuration);
 
         // WPF + Blazor Hybrid requires these framework services
         services.AddWpfBlazorWebView();

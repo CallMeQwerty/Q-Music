@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QMusic.Application.Interfaces;
 using QMusic.Application.Services;
@@ -5,7 +6,6 @@ using QMusic.Infrastructure.MusicProviders.Spotify;
 using QMusic.Infrastructure.MusicProviders.YouTube;
 using QMusic.Infrastructure.Playback;
 using QMusic.Infrastructure.Settings;
-
 
 namespace QMusic.Infrastructure;
 
@@ -15,12 +15,23 @@ namespace QMusic.Infrastructure;
 ///
 /// Why extension methods on IServiceCollection? It's the standard .NET pattern —
 /// each layer exposes an "AddXxx" method that registers its own services.
-/// The host (Desktop) just chains: services.AddInfrastructure().
+/// The host (Desktop) just chains: services.AddInfrastructure(configuration).
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, IConfiguration configuration)
     {
+        // YouTube configuration — binds "QMusic:Providers:YouTubeMusic" section to YouTubeOptions
+        services.Configure<YouTubeOptions>(
+            configuration.GetSection(YouTubeOptions.SectionPath));
+
+        // Named HttpClient for YouTube API — IHttpClientFactory manages handler lifetimes
+        services.AddHttpClient("YouTube", client =>
+        {
+            client.BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/");
+        });
+
         // Music providers — registered as the interface so DI can resolve IEnumerable<IMusicProvider>
         services.AddSingleton<IMusicProvider, YouTubeMusicProvider>();
         services.AddSingleton<IMusicProvider, SpotifyMusicProvider>();
