@@ -278,14 +278,9 @@ public class YouTubeMusicProviderTests
         Assert.False(await provider.IsAvailableAsync());
     }
 
-    [Fact]
-    public async Task GetAudioStreamAsync_ThrowsNotSupportedException()
-    {
-        var provider = CreateProvider("test-key", _ => JsonResponse("{}"));
-
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => provider.GetAudioStreamAsync(new TrackId(MusicSource.YouTubeMusic, "abc123")));
-    }
+    // Note: GetAudioStreamAsync uses YoutubeExplode which makes real HTTP calls to YouTube.
+    // Integration tests for audio streaming are not included here — they would require
+    // network access and a valid video ID. The method is verified via manual end-to-end testing.
 
     // --- Test helpers ---
 

@@ -6,6 +6,8 @@ using QMusic.Application.Interfaces;
 using QMusic.Domain.Entities;
 using QMusic.Domain.Enums;
 using QMusic.Domain.ValueObjects;
+using YoutubeExplode;
+using YoutubeExplode.Videos.Streams;
 
 namespace QMusic.Infrastructure.MusicProviders.YouTube;
 
@@ -21,17 +23,22 @@ namespace QMusic.Infrastructure.MusicProviders.YouTube;
 /// Quota: search costs 100 units, videos.list costs 1 unit. Free tier = 10,000 units/day.
 /// So roughly ~99 searches per day with this two-call pattern.
 ///
-/// Audio streaming is not yet implemented — that will use a separate approach (YoutubeExplode or yt-dlp).
+/// Audio streaming uses YoutubeExplode to extract audio-only streams from YouTube videos.
+/// YoutubeExplode resolves the stream manifest (no API quota cost) and provides direct
+/// access to audio data. We prefer AAC/MP4 streams because NAudio's StreamMediaFoundationReader
+/// handles AAC natively via Windows Media Foundation. Opus/WebM would require extra codecs.
 /// </summary>
 public sealed class YouTubeMusicProvider : IMusicProvider
 {
     private readonly HttpClient _httpClient;
     private readonly YouTubeOptions _options;
+    private readonly YoutubeClient _youtube;
 
     public YouTubeMusicProvider(IHttpClientFactory httpClientFactory, IOptions<YouTubeOptions> options)
     {
         _httpClient = httpClientFactory.CreateClient("YouTube");
         _options = options.Value;
+        _youtube = new YoutubeClient();
     }
 
     public MusicSource Source => MusicSource.YouTubeMusic;
@@ -84,10 +91,27 @@ public sealed class YouTubeMusicProvider : IMusicProvider
             : null;
     }
 
-    public Task<Stream> GetAudioStreamAsync(TrackId id, CancellationToken ct = default)
+    public async Task<Stream> GetAudioStreamAsync(TrackId id, CancellationToken ct = default)
     {
-        throw new NotSupportedException(
-            "Audio streaming is not yet implemented. This will be added in a future task.");
+        var manifest = await _youtube.Videos.Streams.GetManifestAsync(id.Value, ct);
+
+        // Prefer audio-only streams in MP4/AAC container — Media Foundation decodes these natively.
+        // Fall back to any audio-only stream if no MP4 is available.
+        var streamInfo = manifest.GetAudioOnlyStreams()
+            .Where(s => s.Container == Container.Mp4)
+            .GetWithHighestBitrate()
+            ?? manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+
+        if (streamInfo is null)
+            throw new InvalidOperationException($"No audio streams available for video '{id.Value}'.");
+
+        // YoutubeExplode returns a non-seekable network stream, but NAudio's
+        // StreamMediaFoundationReader requires a seekable stream. Copy to MemoryStream.
+        var memoryStream = new MemoryStream();
+        await _youtube.Videos.Streams.CopyToAsync(streamInfo, memoryStream, cancellationToken: ct);
+        memoryStream.Position = 0;
+
+        return memoryStream;
     }
 
     public async Task<string?> GetAlbumArtUrlAsync(TrackId id, CancellationToken ct = default)
