@@ -17,6 +17,7 @@ obj/
 ## Secrets & settings — NEVER commit these
 appsettings.*.json
 !appsettings.json
+!appsettings.local.example.json
 appsettings.local.json
 secrets.json
 
