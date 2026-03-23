@@ -1,7 +1,16 @@
 @inject MusicPlayerService Player
 
 <div class="track-card" @onclick="PlayTrack">
-    <div class="track-card-art">&#9835;</div>
+    <div class="track-card-art">
+        @if (!string.IsNullOrEmpty(Track.AlbumArtUrl))
+        {
+            <img src="@Track.AlbumArtUrl" alt="@Track.Title" />
+        }
+        else
+        {
+            <span>&#9835;</span>
+        }
+    </div>
     <div class="track-card-info">
         <div class="track-card-title">@Track.Title</div>
         <div class="track-card-artist">@Track.Artist</div>
