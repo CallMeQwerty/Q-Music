@@ -6,6 +6,7 @@ using QMusic.Infrastructure.MusicProviders.YouTube;
 using QMusic.Infrastructure.Playback;
 using QMusic.Infrastructure.Settings;
 
+
 namespace QMusic.Infrastructure;
 
 /// <summary>
@@ -25,7 +26,7 @@ public static class DependencyInjection
         services.AddSingleton<IMusicProvider, SpotifyMusicProvider>();
 
         // Playback engine — singleton because there's one audio output device
-        services.AddSingleton<IPlaybackEngine, StubPlaybackEngine>();
+        services.AddSingleton<IPlaybackEngine, NAudioPlaybackEngine>();
 
         // Settings — singleton with a well-known file path
         services.AddSingleton<ISettingsService>(sp =>

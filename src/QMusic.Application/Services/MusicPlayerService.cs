@@ -59,6 +59,22 @@ public sealed class MusicPlayerService
     public void Stop() => _playbackEngine.Stop();
     public void Seek(TimeSpan position) => _playbackEngine.Seek(position);
 
+    /// <summary>
+    /// Relays engine events so UI components subscribe through the service
+    /// (the service is the single touchpoint for the UI, not the engine directly).
+    /// </summary>
+    public event EventHandler<PlaybackState>? StateChanged
+    {
+        add => _playbackEngine.StateChanged += value;
+        remove => _playbackEngine.StateChanged -= value;
+    }
+
+    public event EventHandler<TimeSpan>? PositionChanged
+    {
+        add => _playbackEngine.PositionChanged += value;
+        remove => _playbackEngine.PositionChanged -= value;
+    }
+
     private static TrackDto MapToDto(Track track) => new()
     {
         Id = track.Id.ToString(),

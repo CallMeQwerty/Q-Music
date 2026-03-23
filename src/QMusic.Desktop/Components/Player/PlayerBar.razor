@@ -1,3 +1,4 @@
+@implements IDisposable
 @inject MusicPlayerService Player
 
 <div class="player-bar">
@@ -34,6 +35,9 @@
             </button>
             <button class="player-btn" title="Next">&#9654;&#9654;</button>
         </div>
+        <div style="font-size: 0.7rem; color: var(--text-muted);">
+            @FormatTime(Player.CurrentPosition) / @FormatTime(Player.TotalDuration)
+        </div>
     </div>
 
     <div class="player-volume">
@@ -42,11 +46,38 @@
 </div>
 
 @code {
+    protected override void OnInitialized()
+    {
+        Player.StateChanged += OnStateChanged;
+        Player.PositionChanged += OnPositionChanged;
+    }
+
+    private async void OnStateChanged(object? sender, PlaybackState state)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnPositionChanged(object? sender, TimeSpan position)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private void TogglePlayPause()
     {
         if (Player.State == PlaybackState.Playing)
             Player.Pause();
         else
             Player.Resume();
+    }
+
+    private static string FormatTime(TimeSpan time) =>
+        time.TotalHours >= 1
+            ? time.ToString(@"h\:mm\:ss")
+            : time.ToString(@"m\:ss");
+
+    public void Dispose()
+    {
+        Player.StateChanged -= OnStateChanged;
+        Player.PositionChanged -= OnPositionChanged;
     }
 }
