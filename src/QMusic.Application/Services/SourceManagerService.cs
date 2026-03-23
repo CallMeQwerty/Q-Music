@@ -15,10 +15,12 @@ public sealed class SourceManagerService
 {
     private readonly Dictionary<MusicSource, IMusicProvider> _providers;
 
-    public SourceManagerService(IEnumerable<IMusicProvider> providers)
+    public SourceManagerService(IEnumerable<IMusicProvider> providers, MusicSource defaultSource = MusicSource.YouTubeMusic)
     {
         _providers = providers.ToDictionary(p => p.Source);
-        ActiveSource = _providers.Keys.FirstOrDefault();
+        ActiveSource = _providers.ContainsKey(defaultSource)
+            ? defaultSource
+            : _providers.Keys.FirstOrDefault();
     }
 
     public MusicSource ActiveSource { get; private set; }

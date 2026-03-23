@@ -49,8 +49,14 @@ public static class DependencyInjection
             return new JsonSettingsService(Path.Combine(appData, "settings.json"));
         });
 
-        // Application services
-        services.AddSingleton<SourceManagerService>();
+        // Application services — SourceManagerService gets the configured default source
+        services.AddSingleton(sp =>
+        {
+            var providers = sp.GetServices<IMusicProvider>();
+            var defaultSourceStr = configuration["QMusic:DefaultSource"] ?? "YouTubeMusic";
+            Enum.TryParse<QMusic.Domain.Enums.MusicSource>(defaultSourceStr, out var defaultSource);
+            return new SourceManagerService(providers, defaultSource);
+        });
         services.AddSingleton<MusicPlayerService>();
 
         return services;
