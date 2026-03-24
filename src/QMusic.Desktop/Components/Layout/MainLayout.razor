@@ -1,8 +1,10 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject SourceManagerService SourceManager
 
-<div class="app-layout">
+<div class="app-layout @ThemeClass">
     <nav class="sidebar">
-        <div class="sidebar-brand">QMusic</div>
+        <div class="sidebar-brand">Q-Music</div>
 
         <div class="sidebar-section">Sources</div>
         <SourceSelector />
@@ -17,3 +19,27 @@
 
     <PlayerBar />
 </div>
+
+@code {
+    private string ThemeClass => SourceManager.ActiveSource switch
+    {
+        MusicSource.YouTubeMusic => "theme-youtube",
+        MusicSource.Spotify => "theme-spotify",
+        _ => "theme-youtube"
+    };
+
+    protected override void OnInitialized()
+    {
+        SourceManager.ActiveSourceChanged += OnSourceChanged;
+    }
+
+    private async void OnSourceChanged(MusicSource _)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SourceManager.ActiveSourceChanged -= OnSourceChanged;
+    }
+}

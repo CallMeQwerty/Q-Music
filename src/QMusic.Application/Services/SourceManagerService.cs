@@ -25,6 +25,8 @@ public sealed class SourceManagerService
 
     public MusicSource ActiveSource { get; private set; }
 
+    public event Action<MusicSource>? ActiveSourceChanged;
+
     public IMusicProvider? GetActiveProvider() =>
         _providers.GetValueOrDefault(ActiveSource);
 
@@ -35,7 +37,10 @@ public sealed class SourceManagerService
 
     public void SetActiveSource(MusicSource source)
     {
-        if (_providers.ContainsKey(source))
+        if (_providers.ContainsKey(source) && source != ActiveSource)
+        {
             ActiveSource = source;
+            ActiveSourceChanged?.Invoke(source);
+        }
     }
 }
