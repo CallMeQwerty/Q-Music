@@ -6,7 +6,16 @@
         <div class="player-track-info">
             @if (Player.CurrentTrack is { } track)
             {
-                <div class="player-album-art">&#9835;</div>
+                <div class="player-album-art">
+                    @if (!string.IsNullOrEmpty(track.AlbumArtUrl))
+                    {
+                        <img src="@track.AlbumArtUrl" alt="@track.Title" />
+                    }
+                    else
+                    {
+                        <span>&#9835;</span>
+                    }
+                </div>
                 <div class="player-track-text">
                     <div class="track-title">@track.Title</div>
                     <div class="track-artist">@track.Artist</div>

@@ -248,8 +248,8 @@ html, body {
 }
 
 .player-album-art {
-    width: 46px;
-    height: 46px;
+    width: 80px;
+    height: 80px;
     border-radius: 4px;
     background: var(--bg-surface);
     display: flex;
@@ -258,6 +258,13 @@ html, body {
     color: var(--text-muted);
     font-size: 1.3rem;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.player-album-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .player-track-text .track-title {
