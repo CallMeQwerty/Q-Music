@@ -41,11 +41,25 @@
     </div>
 
     <div class="player-volume">
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Vol: @Player.Volume%</span>
+        <div class="volume-control">
+            <input type="range"
+                   class="volume-slider"
+                   min="0"
+                   max="100"
+                   value="@Player.Volume"
+                   @oninput="OnVolumeChange" />
+            <button class="player-btn volume-btn" @onclick="ToggleMute" title="Volume">
+                @VolumeIcon
+            </button>
+            <span class="volume-label">@Player.Volume</span>
+        </div>
     </div>
 </div>
 
 @code {
+    private int _volumeBeforeMute;
+    private bool _isMuted;
+
     protected override void OnInitialized()
     {
         Player.StateChanged += OnStateChanged;
@@ -69,6 +83,38 @@
         else
             Player.Resume();
     }
+
+    private void OnVolumeChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var volume))
+        {
+            Player.Volume = volume;
+            _isMuted = volume == 0;
+        }
+    }
+
+    private void ToggleMute()
+    {
+        if (_isMuted)
+        {
+            Player.Volume = _volumeBeforeMute > 0 ? _volumeBeforeMute : 50;
+            _isMuted = false;
+        }
+        else
+        {
+            _volumeBeforeMute = Player.Volume;
+            Player.Volume = 0;
+            _isMuted = true;
+        }
+    }
+
+    private string VolumeIcon => Player.Volume switch
+    {
+        0 => "\U0001F507",      // muted
+        <= 33 => "\U0001F508",  // low
+        <= 66 => "\U0001F509",  // medium
+        _ => "\U0001F50A"       // high
+    };
 
     private static string FormatTime(TimeSpan time) =>
         time.TotalHours >= 1
