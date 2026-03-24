@@ -14,7 +14,7 @@
     --border: #2a2a2a;
     --player-bg: #0d0d0d;
     --sidebar-width: 220px;
-    --player-height: 80px;
+    --player-height: 96px;
     --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
@@ -146,10 +146,99 @@ html, body {
     grid-column: 1 / -1;
     background: var(--player-bg);
     border-top: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
+    display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0;
+}
+
+.player-single-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 180px;
+    align-items: center;
+    width: 100%;
+    padding: 0 16px;
+    gap: 12px;
+}
+
+.player-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0 40px;
+}
+
+.progress-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-width: 36px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-bar-container {
+    flex: 1;
+    position: relative;
+    height: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.progress-bar-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: #404040;
+    border-radius: 2px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+}
+
+.progress-bar-input {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    width: 100%;
+    height: 12px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+    outline: none;
+    z-index: 1;
+}
+
+.progress-bar-input::-webkit-slider-runnable-track {
+    height: 5px;
+    background: transparent;
+    border-radius: 2px;
+}
+
+.progress-bar-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-top: -5px;
+}
+
+.progress-bar-input::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
 }
 
 .player-track-info {
@@ -159,38 +248,53 @@ html, body {
 }
 
 .player-album-art {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 4px;
     background: var(--bg-surface);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    flex-shrink: 0;
 }
 
 .player-track-text .track-title {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
 .player-track-text .track-artist {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-secondary);
-}
-
-.player-controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
 }
 
 .player-buttons {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+}
+
+.player-btn-sm {
+    font-size: 0.75rem !important;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    background: #2a2a2a !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-btn-sm:hover {
+    background: #3a3a3a !important;
+}
+
+.play-btn-sm {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.85rem !important;
 }
 
 .player-btn {
@@ -208,15 +312,15 @@ html, body {
 }
 
 .player-btn.play-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     background: var(--text-primary);
     color: var(--player-bg);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.85rem;
 }
 
 .player-btn.play-btn:hover {
@@ -240,11 +344,11 @@ html, body {
 }
 
 .volume-btn {
-    font-size: 1.4rem !important;
+    font-size: 1.6rem !important;
 }
 
 .volume-label {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     min-width: 26px;
     text-align: left;
