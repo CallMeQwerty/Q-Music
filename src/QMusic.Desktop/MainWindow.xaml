@@ -6,7 +6,8 @@
         Title="QMusic"
         Width="1200" Height="800"
         WindowStartupLocation="CenterScreen"
-        Background="#1a1a2e">
+        Background="#1a1a2e"
+        Icon="pack://application:,,,/app.ico">
 
     <!--
         BlazorWebView is the bridge between WPF and Blazor.
