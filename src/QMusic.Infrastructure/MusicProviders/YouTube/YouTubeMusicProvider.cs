@@ -161,9 +161,8 @@ public sealed class YouTubeMusicProvider : IMusicProvider
             }
         }
 
-        var thumbnail = item.Snippet.Thumbnails.High
-                        ?? item.Snippet.Thumbnails.Medium
-                        ?? item.Snippet.Thumbnails.Default;
+        // Use mqdefault (320x180, 16:9 no letterbox) instead of hqdefault (480x360, often letterboxed)
+        var albumArtUrl = $"https://i.ytimg.com/vi/{item.Id}/mqdefault.jpg";
 
         return new Track
         {
@@ -172,7 +171,7 @@ public sealed class YouTubeMusicProvider : IMusicProvider
             Artist = WebUtility.HtmlDecode(item.Snippet.ChannelTitle),
             Album = null,
             Duration = duration,
-            AlbumArtUrl = thumbnail?.Url
+            AlbumArtUrl = albumArtUrl
         };
     }
 }

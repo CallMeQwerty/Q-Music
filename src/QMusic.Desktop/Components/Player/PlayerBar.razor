@@ -1,5 +1,6 @@
 @implements IDisposable
 @inject MusicPlayerService Player
+@inject IJSRuntime JS
 
 <div class="player-bar">
     <div class="player-single-row">
@@ -17,8 +18,13 @@
                     }
                 </div>
                 <div class="player-track-text">
-                    <div class="track-title">@track.Title</div>
-                    <div class="track-artist">@track.Artist</div>
+                    <div class="track-title @(IsOverflow(track.Title) ? "marquee-scroll" : "")"
+                         @onclick="() => CopyToClipboard(track.Title)" title="Click to copy" style="cursor: pointer;">
+                        <span class="marquee-text">@(IsOverflow(track.Title) ? $"{track.Title}       {track.Title}" : track.Title)</span>
+                    </div>
+                    <div class="track-artist @(IsOverflow(track.Artist) ? "marquee-scroll" : "")">
+                        <span class="marquee-text">@(IsOverflow(track.Artist) ? $"{track.Artist}       {track.Artist}" : track.Artist)</span>
+                    </div>
                 </div>
             }
             else
@@ -153,6 +159,17 @@
         <= 66 => "\U0001F509",  // medium
         _ => "\U0001F50A"       // high
     };
+
+    private async Task CopyToClipboard(string? text)
+    {
+        if (!string.IsNullOrEmpty(text))
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+    }
+
+    private const int MarqueeThreshold = 30;
+
+    private static bool IsOverflow(string? text) =>
+        text is not null && text.Length > MarqueeThreshold;
 
     private static string FormatTime(TimeSpan time) =>
         time.TotalHours >= 1
