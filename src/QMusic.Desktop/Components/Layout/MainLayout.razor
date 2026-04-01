@@ -1,11 +1,32 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject SourceManagerService SourceManager
+@inject MusicPlayerService Player
 
 <div class="app-layout @ThemeClass">
-    <nav class="sidebar">
-        <div class="sidebar-brand">Q-Music</div>
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <span class="top-bar-brand">Q-Music</span>
+        </div>
+        <div class="top-bar-center">
+            <input class="top-bar-search"
+                   type="text"
+                   placeholder="Search for music..."
+                   @bind="_query"
+                   @bind:event="oninput"
+                   @onkeydown="HandleSearchKeyDown" />
+        </div>
+        <div class="top-bar-right">
+            <div class="top-bar-profile" title="Profile">
+                &#128100;
+            </div>
+            <div class="top-bar-icon" title="Settings">
+                &#9881;
+            </div>
+        </div>
+    </header>
 
+    <nav class="sidebar">
         <div class="sidebar-section">Sources</div>
         <SourceSelector />
 
@@ -14,13 +35,30 @@
     </nav>
 
     <main class="content">
-        @Body
+        <CascadingValue Value="_searchResults" Name="SearchResults">
+            <CascadingValue Value="_hasSearched" Name="HasSearched">
+                @Body
+            </CascadingValue>
+        </CascadingValue>
     </main>
 
     <PlayerBar />
 </div>
 
-@code { 
+@code {
+    private string _query = string.Empty;
+    private List<TrackDto> _searchResults = [];
+    private bool _hasSearched;
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_query))
+        {
+            _searchResults = (await Player.SearchAsync(_query)).ToList();
+            _hasSearched = true;
+        }
+    }
+
     private string ThemeClass => SourceManager.ActiveSource switch
     {
         MusicSource.YouTubeMusic => "theme-youtube",

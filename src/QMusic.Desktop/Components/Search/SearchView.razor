@@ -1,14 +1,5 @@
 @inject MusicPlayerService Player
 
-<div class="search-container">
-    <input class="search-input"
-           type="text"
-           placeholder="Search for music..."
-           @bind="_query"
-           @bind:event="oninput"
-           @onkeydown="HandleKeyDown" />
-</div>
-
 @if (_results.Count > 0)
 {
     <div style="margin-top: 20px;">
@@ -26,16 +17,9 @@ else if (_hasSearched)
 }
 
 @code {
-    private string _query = string.Empty;
-    private List<TrackDto> _results = [];
-    private bool _hasSearched;
+    [CascadingParameter(Name = "SearchResults")]
+    public List<TrackDto> _results { get; set; } = [];
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_query))
-        {
-            _results = (await Player.SearchAsync(_query)).ToList();
-            _hasSearched = true;
-        }
-    }
+    [CascadingParameter(Name = "HasSearched")]
+    public bool _hasSearched { get; set; }
 }
