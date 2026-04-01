@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QMusic.Application.Interfaces;
 using QMusic.Application.Services;
+using QMusic.Infrastructure.Auth;
 using QMusic.Infrastructure.MusicProviders.Spotify;
 using QMusic.Infrastructure.MusicProviders.YouTube;
 using QMusic.Infrastructure.Playback;
@@ -48,6 +49,9 @@ public static class DependencyInjection
             Directory.CreateDirectory(appData);
             return new JsonSettingsService(Path.Combine(appData, "settings.json"));
         });
+
+        // Authentication — Google OAuth for YouTube user-level access (playlists, library)
+        services.AddSingleton<IAuthenticationService, GoogleOAuthService>();
 
         // Application services — SourceManagerService gets the configured default source
         services.AddSingleton(sp =>

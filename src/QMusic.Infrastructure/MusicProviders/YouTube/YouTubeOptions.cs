@@ -15,4 +15,11 @@ public sealed class YouTubeOptions
     public bool Enabled { get; set; }
     public string? ApiKey { get; set; }
     public int MaxResults { get; set; } = 20;
+    public YouTubeOAuthOptions OAuth { get; set; } = new();
+}
+
+public sealed class YouTubeOAuthOptions
+{
+    public string? ClientId { get; set; }
+    public string? ClientSecret { get; set; }
 }

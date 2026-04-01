@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject SourceManagerService SourceManager
 @inject MusicPlayerService Player
+@inject IAuthenticationService Auth
 
 <div class="app-layout @ThemeClass">
     <header class="top-bar">
@@ -17,9 +18,22 @@
                    @onkeydown="HandleSearchKeyDown" />
         </div>
         <div class="top-bar-right">
-            <div class="top-bar-profile" title="Profile">
-                &#128100;
+            <div class="top-bar-profile" @onclick="HandleProfileClick" title="@(_isAuthenticated ? _userProfile?.DisplayName ?? "Profile" : "Sign in")">
+                @if (_isAuthenticated && _userProfile?.ProfilePictureUrl is not null)
+                {
+                    <img src="@_userProfile.ProfilePictureUrl" alt="Profile" class="profile-avatar" />
+                }
+                else
+                {
+                    <span>&#128100;</span>
+                }
             </div>
+            @if (_isAuthenticated)
+            {
+                <div class="top-bar-icon" @onclick="HandleLogout" title="Sign out">
+                    &#x23FB;
+                </div>
+            }
             <div class="top-bar-icon" title="Settings">
                 &#9881;
             </div>
@@ -49,6 +63,8 @@
     private string _query = string.Empty;
     private List<TrackDto> _searchResults = [];
     private bool _hasSearched;
+    private bool _isAuthenticated;
+    private UserProfile? _userProfile;
 
     private async Task HandleSearchKeyDown(KeyboardEventArgs e)
     {
@@ -59,6 +75,29 @@
         }
     }
 
+    private async Task HandleProfileClick()
+    {
+        if (!_isAuthenticated)
+        {
+            await Auth.LoginAsync();
+            await LoadProfileAsync();
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await Auth.LogoutAsync();
+        _isAuthenticated = false;
+        _userProfile = null;
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        _isAuthenticated = await Auth.IsAuthenticatedAsync();
+        if (_isAuthenticated)
+            _userProfile = await Auth.GetUserProfileAsync();
+    }
+
     private string ThemeClass => SourceManager.ActiveSource switch
     {
         MusicSource.YouTubeMusic => "theme-youtube",
@@ -66,9 +105,11 @@
         _ => "theme-youtube"
     };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         SourceManager.ActiveSourceChanged += OnSourceChanged;
+        Auth.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadProfileAsync();
     }
 
     private async void OnSourceChanged(MusicSource _)
@@ -76,8 +117,18 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void OnAuthStateChanged(bool _)
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadProfileAsync();
+            StateHasChanged();
+        });
+    }
+
     public void Dispose()
     {
         SourceManager.ActiveSourceChanged -= OnSourceChanged;
+        Auth.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }
