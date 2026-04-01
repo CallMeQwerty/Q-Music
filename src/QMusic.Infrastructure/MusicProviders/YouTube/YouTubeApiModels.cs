@@ -70,6 +70,12 @@ internal sealed class YouTubeSnippet
     [JsonPropertyName("channelTitle")]
     public string ChannelTitle { get; set; } = string.Empty;
 
+    [JsonPropertyName("publishedAt")]
+    public DateTime? PublishedAt { get; set; }
+
+    [JsonPropertyName("categoryId")]
+    public string? CategoryId { get; set; }
+
     [JsonPropertyName("thumbnails")]
     public YouTubeThumbnails Thumbnails { get; set; } = new();
 }

@@ -50,9 +50,14 @@
         @if (_isAuthenticated && _playlists.Count > 0)
         {
             <div class="sidebar-divider"></div>
-            <div class="sidebar-section">Your Playlists</div>
+            <div class="sidebar-section sidebar-section-with-action">
+                <span>Your Playlists</span>
+                <span class="sidebar-sort-btn" @onclick="CyclePlaylistSort" title="Sort: @_playlistSortLabel">
+                    @_playlistSortIcon
+                </span>
+            </div>
             <div class="sidebar-playlists">
-                @foreach (var playlist in _playlists)
+                @foreach (var playlist in SortedPlaylists)
                 {
                     <div class="sidebar-item sidebar-playlist-item @(_activeView == "Playlist" && _selectedPlaylistId == playlist.Id ? "active" : "")"
                          @onclick="() => SelectPlaylist(playlist.Id)" title="@playlist.Title">
@@ -92,6 +97,63 @@
     private List<TrackDto> _playlistTracks = [];
     private bool _loadingPlaylists;
     private string _activeView = "Search";
+    private HashSet<string> _emptyPlaylists = [];
+    private PlaylistSort _playlistSort = PlaylistSort.Default;
+
+    private enum PlaylistSort { Default, AZ, ZA, TrackCount, RecentlyAdded }
+
+    private IEnumerable<PlaylistDto> SortedPlaylists
+    {
+        get
+        {
+            // Hide playlists that were opened and found to have no music tracks
+            var visible = _playlists.Where(p => !_emptyPlaylists.Contains(p.Id));
+            var liked = visible.Where(p => p.Id == "LL");
+            var rest = visible.Where(p => p.Id != "LL");
+
+            var sorted = _playlistSort switch
+            {
+                PlaylistSort.AZ => rest.OrderBy(p => p.Title, StringComparer.OrdinalIgnoreCase),
+                PlaylistSort.ZA => rest.OrderByDescending(p => p.Title, StringComparer.OrdinalIgnoreCase),
+                PlaylistSort.TrackCount => rest.OrderByDescending(p => p.TrackCount),
+                PlaylistSort.RecentlyAdded => rest.OrderByDescending(p => p.PublishedAt),
+                _ => rest
+            };
+
+            return liked.Concat(sorted);
+        }
+    }
+
+    private string _playlistSortLabel => _playlistSort switch
+    {
+        PlaylistSort.AZ => "A-Z",
+        PlaylistSort.ZA => "Z-A",
+        PlaylistSort.TrackCount => "Track count",
+        PlaylistSort.RecentlyAdded => "Recently added",
+        _ => "Default"
+    };
+
+    private string _playlistSortIcon => _playlistSort switch
+    {
+        PlaylistSort.AZ => "\u2191",         // ↑
+        PlaylistSort.ZA => "\u2193",         // ↓
+        PlaylistSort.TrackCount => "#",
+        PlaylistSort.RecentlyAdded => "\u23F0", // ⏰
+        _ => "\u21C5"                         // ⇅
+    };
+
+    private void CyclePlaylistSort()
+    {
+        _playlistSort = _playlistSort switch
+        {
+            PlaylistSort.Default => PlaylistSort.AZ,
+            PlaylistSort.AZ => PlaylistSort.ZA,
+            PlaylistSort.ZA => PlaylistSort.TrackCount,
+            PlaylistSort.TrackCount => PlaylistSort.RecentlyAdded,
+            PlaylistSort.RecentlyAdded => PlaylistSort.Default,
+            _ => PlaylistSort.Default
+        };
+    }
 
     // Unified track list for the content area
     private List<TrackDto> _displayTracks => _activeView == "Playlist" ? _playlistTracks : _searchResults;
@@ -117,6 +179,14 @@
         _selectedPlaylistId = playlistId;
         _activeView = "Playlist";
         _playlistTracks = (await Player.GetPlaylistTracksAsync(playlistId)).ToList();
+
+        // If no music tracks found, remember this playlist as empty and hide it
+        if (_playlistTracks.Count == 0)
+        {
+            _emptyPlaylists.Add(playlistId);
+            _selectedPlaylistId = null;
+            _activeView = "Search";
+        }
     }
 
     private async Task HandleProfileClick()
@@ -136,6 +206,7 @@
         _playlists = [];
         _playlistTracks = [];
         _selectedPlaylistId = null;
+        _emptyPlaylists = [];
         _activeView = "Search";
     }
 

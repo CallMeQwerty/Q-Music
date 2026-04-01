@@ -189,12 +189,29 @@ public sealed class YouTubeMusicProvider : IMusicProvider
                     Id = item.Id,
                     Title = WebUtility.HtmlDecode(item.Snippet.Title),
                     ThumbnailUrl = thumb?.Url,
+                    PublishedAt = item.Snippet.PublishedAt,
                     TrackCount = item.ContentDetails.ItemCount
                 };
             }));
 
             pageToken = response.NextPageToken;
         } while (pageToken is not null);
+
+        // Prepend the "Liked Videos" system playlist (ID: LL) — it doesn't appear in playlists.list
+        var likedUrl = $"playlists?part=snippet,contentDetails&id=LL&key={_options.ApiKey}";
+        var likedResponse = await GetAsync<YouTubePlaylistListResponse>(likedUrl, token, ct);
+        if (likedResponse?.Items is { Count: > 0 })
+        {
+            var liked = likedResponse.Items[0];
+            playlists.Insert(0, new PlaylistDto
+            {
+                Id = "LL",
+                Title = "\u2764 Liked Videos",
+                ThumbnailUrl = null,
+                PublishedAt = liked.Snippet.PublishedAt,
+                TrackCount = liked.ContentDetails.ItemCount
+            });
+        }
 
         return playlists;
     }
@@ -230,13 +247,16 @@ public sealed class YouTubeMusicProvider : IMusicProvider
             return [];
 
         // Step 2: Batch fetch video details (durations, full metadata) — 50 per call
+        // Filter to Music category (categoryId: 10) to exclude non-music content
         var tracks = new List<Track>();
         foreach (var batch in videoIds.Chunk(50))
         {
             var videosUrl = $"videos?part=contentDetails,snippet&id={string.Join(',', batch)}&key={_options.ApiKey}";
             var videosResponse = await GetAsync<YouTubeVideoListResponse>(videosUrl, ct);
             if (videosResponse?.Items is not null)
-                tracks.AddRange(videosResponse.Items.Select(MapToTrack));
+                tracks.AddRange(videosResponse.Items
+                    .Where(v => v.Snippet.CategoryId == "10")
+                    .Select(MapToTrack));
         }
 
         return tracks;

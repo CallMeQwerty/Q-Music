@@ -87,6 +87,26 @@ html, body {
     overflow: hidden;
 }
 
+.sidebar-section-with-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-sort-btn {
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.sidebar-sort-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
 .sidebar-divider {
     height: 1px;
     background: var(--border);
