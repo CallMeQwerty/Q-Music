@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
+using QMusic.Application.Interfaces;
 using QMusic.Domain.Enums;
 using QMusic.Domain.ValueObjects;
+using QMusic.Infrastructure.Auth;
 using QMusic.Infrastructure.MusicProviders.YouTube;
+using QMusic.Infrastructure.Settings;
 
 namespace QMusic.Infrastructure.Tests;
 
@@ -26,7 +29,13 @@ public class YouTubeMusicProviderTests
         };
 
         var factory = new StubHttpClientFactory(httpClient);
-        return new YouTubeMusicProvider(factory, options);
+
+        // Create a GoogleOAuthService with no credentials — won't authenticate in tests
+        var authOptions = Options.Create(new YouTubeOptions { OAuth = new YouTubeOAuthOptions() });
+        var settings = new JsonSettingsService(Path.Combine(Path.GetTempPath(), $"qmusic-test-{Guid.NewGuid()}.json"));
+        var authService = new GoogleOAuthService(authOptions, settings, factory);
+
+        return new YouTubeMusicProvider(factory, options, authService);
     }
 
     private static HttpResponseMessage JsonResponse(string json, HttpStatusCode status = HttpStatusCode.OK) =>
@@ -182,9 +191,8 @@ public class YouTubeMusicProviderTests
 
         var results = (await provider.SearchAsync("test")).ToList();
 
-        Assert.Equal("https://img.youtube.com/vi/abc123/hq.jpg", results[0].AlbumArtUrl);
-        // Second track only has "medium" thumbnail
-        Assert.Equal("https://img.youtube.com/vi/def456/mq.jpg", results[1].AlbumArtUrl);
+        Assert.Equal("https://i.ytimg.com/vi/abc123/mqdefault.jpg", results[0].AlbumArtUrl);
+        Assert.Equal("https://i.ytimg.com/vi/def456/mqdefault.jpg", results[1].AlbumArtUrl);
     }
 
     [Fact]
@@ -259,7 +267,7 @@ public class YouTubeMusicProviderTests
 
         var url = await provider.GetAlbumArtUrlAsync(new TrackId(MusicSource.YouTubeMusic, "abc123"));
 
-        Assert.Equal("https://img.youtube.com/vi/abc123/hq.jpg", url);
+        Assert.Equal("https://i.ytimg.com/vi/abc123/mqdefault.jpg", url);
     }
 
     [Fact]

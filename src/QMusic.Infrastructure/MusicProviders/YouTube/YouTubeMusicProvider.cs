@@ -1,11 +1,14 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Xml;
 using Microsoft.Extensions.Options;
+using QMusic.Application.DTOs;
 using QMusic.Application.Interfaces;
 using QMusic.Domain.Entities;
 using QMusic.Domain.Enums;
 using QMusic.Domain.ValueObjects;
+using QMusic.Infrastructure.Auth;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -33,12 +36,17 @@ public sealed class YouTubeMusicProvider : IMusicProvider
     private readonly HttpClient _httpClient;
     private readonly YouTubeOptions _options;
     private readonly YoutubeClient _youtube;
+    private readonly GoogleOAuthService _authService;
 
-    public YouTubeMusicProvider(IHttpClientFactory httpClientFactory, IOptions<YouTubeOptions> options)
+    public YouTubeMusicProvider(
+        IHttpClientFactory httpClientFactory,
+        IOptions<YouTubeOptions> options,
+        GoogleOAuthService authService)
     {
         _httpClient = httpClientFactory.CreateClient("YouTube");
         _options = options.Value;
         _youtube = new YoutubeClient();
+        _authService = authService;
     }
 
     public MusicSource Source => MusicSource.YouTubeMusic;
@@ -125,11 +133,18 @@ public sealed class YouTubeMusicProvider : IMusicProvider
         return Task.FromResult(!string.IsNullOrWhiteSpace(_options.ApiKey));
     }
 
-    private async Task<T?> GetAsync<T>(string url, CancellationToken ct)
+    private Task<T?> GetAsync<T>(string url, CancellationToken ct)
+        => GetAsync<T>(url, accessToken: null, ct);
+
+    private async Task<T?> GetAsync<T>(string url, string? accessToken, CancellationToken ct)
     {
         try
         {
-            var response = await _httpClient.GetAsync(url, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (accessToken is not null)
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
                 return default;
 
@@ -144,6 +159,87 @@ public sealed class YouTubeMusicProvider : IMusicProvider
         {
             return default;
         }
+    }
+
+    public async Task<IEnumerable<PlaylistDto>> GetUserPlaylistsAsync(CancellationToken ct = default)
+    {
+        var token = await _authService.GetAccessTokenAsync(ct);
+        if (token is null)
+            return [];
+
+        var playlists = new List<PlaylistDto>();
+        string? pageToken = null;
+
+        do
+        {
+            var url = $"playlists?part=snippet,contentDetails&mine=true&maxResults=50&key={_options.ApiKey}" +
+                      (pageToken is not null ? $"&pageToken={pageToken}" : "");
+
+            var response = await GetAsync<YouTubePlaylistListResponse>(url, token, ct);
+            if (response?.Items is null)
+                break;
+
+            playlists.AddRange(response.Items.Select(item =>
+            {
+                var thumb = item.Snippet.Thumbnails.Medium
+                            ?? item.Snippet.Thumbnails.Default;
+
+                return new PlaylistDto
+                {
+                    Id = item.Id,
+                    Title = WebUtility.HtmlDecode(item.Snippet.Title),
+                    ThumbnailUrl = thumb?.Url,
+                    TrackCount = item.ContentDetails.ItemCount
+                };
+            }));
+
+            pageToken = response.NextPageToken;
+        } while (pageToken is not null);
+
+        return playlists;
+    }
+
+    public async Task<IEnumerable<Track>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
+    {
+        var token = await _authService.GetAccessTokenAsync(ct);
+        if (token is null)
+            return [];
+
+        // Step 1: Get all video IDs from the playlist
+        var videoIds = new List<string>();
+        string? pageToken = null;
+
+        do
+        {
+            var url = $"playlistItems?part=snippet&playlistId={Uri.EscapeDataString(playlistId)}" +
+                      $"&maxResults=50&key={_options.ApiKey}" +
+                      (pageToken is not null ? $"&pageToken={pageToken}" : "");
+
+            var response = await GetAsync<YouTubePlaylistItemListResponse>(url, token, ct);
+            if (response?.Items is null)
+                break;
+
+            videoIds.AddRange(response.Items
+                .Select(i => i.Snippet.ResourceId.VideoId)
+                .Where(id => !string.IsNullOrEmpty(id)));
+
+            pageToken = response.NextPageToken;
+        } while (pageToken is not null);
+
+        if (videoIds.Count == 0)
+            return [];
+
+        // Step 2: Batch fetch video details (durations, full metadata) — 50 per call
+        var tracks = new List<Track>();
+        foreach (var batch in videoIds.Chunk(50))
+        {
+            var videosUrl = $"videos?part=contentDetails,snippet&id={string.Join(',', batch)}&key={_options.ApiKey}";
+            var videosResponse = await GetAsync<YouTubeVideoListResponse>(videosUrl, ct);
+            if (videosResponse?.Items is not null)
+                tracks.AddRange(videosResponse.Items.Select(MapToTrack));
+        }
+
+        return tracks;
     }
 
     private static Track MapToTrack(YouTubeVideoItem item)

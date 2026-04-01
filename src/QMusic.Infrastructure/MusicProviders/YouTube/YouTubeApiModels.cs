@@ -91,3 +91,64 @@ internal sealed class YouTubeThumbnail
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
 }
+
+// ===== Playlists.list endpoint response =====
+
+internal sealed class YouTubePlaylistListResponse
+{
+    [JsonPropertyName("items")]
+    public List<YouTubePlaylistItem> Items { get; set; } = [];
+
+    [JsonPropertyName("nextPageToken")]
+    public string? NextPageToken { get; set; }
+}
+
+internal sealed class YouTubePlaylistItem
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("snippet")]
+    public YouTubeSnippet Snippet { get; set; } = new();
+
+    [JsonPropertyName("contentDetails")]
+    public YouTubePlaylistContentDetails ContentDetails { get; set; } = new();
+}
+
+internal sealed class YouTubePlaylistContentDetails
+{
+    [JsonPropertyName("itemCount")]
+    public int ItemCount { get; set; }
+}
+
+// ===== PlaylistItems.list endpoint response =====
+
+internal sealed class YouTubePlaylistItemListResponse
+{
+    [JsonPropertyName("items")]
+    public List<YouTubePlaylistItemEntry> Items { get; set; } = [];
+
+    [JsonPropertyName("nextPageToken")]
+    public string? NextPageToken { get; set; }
+}
+
+internal sealed class YouTubePlaylistItemEntry
+{
+    [JsonPropertyName("snippet")]
+    public YouTubePlaylistItemSnippet Snippet { get; set; } = new();
+}
+
+internal sealed class YouTubePlaylistItemSnippet
+{
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [JsonPropertyName("resourceId")]
+    public YouTubeResourceId ResourceId { get; set; } = new();
+}
+
+internal sealed class YouTubeResourceId
+{
+    [JsonPropertyName("videoId")]
+    public string VideoId { get; set; } = string.Empty;
+}

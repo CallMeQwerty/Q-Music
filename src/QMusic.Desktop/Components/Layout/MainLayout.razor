@@ -45,12 +45,34 @@
         <SourceSelector />
 
         <div class="sidebar-section">Library</div>
-        <div class="sidebar-item active">Search</div>
+        <div class="sidebar-item @(_activeView == "Search" ? "active" : "")" @onclick="ShowSearch">Search</div>
+
+        @if (_isAuthenticated && _playlists.Count > 0)
+        {
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section">Your Playlists</div>
+            <div class="sidebar-playlists">
+                @foreach (var playlist in _playlists)
+                {
+                    <div class="sidebar-item sidebar-playlist-item @(_activeView == "Playlist" && _selectedPlaylistId == playlist.Id ? "active" : "")"
+                         @onclick="() => SelectPlaylist(playlist.Id)" title="@playlist.Title">
+                        <span class="playlist-name">@playlist.Title</span>
+                        <span class="playlist-count">@playlist.TrackCount</span>
+                    </div>
+                }
+            </div>
+        }
+        else if (_isAuthenticated && _loadingPlaylists)
+        {
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section">Your Playlists</div>
+            <div class="sidebar-item" style="color: var(--text-muted); font-size: 0.8rem;">Loading...</div>
+        }
     </nav>
 
     <main class="content">
-        <CascadingValue Value="_searchResults" Name="SearchResults">
-            <CascadingValue Value="_hasSearched" Name="HasSearched">
+        <CascadingValue Value="_displayTracks" Name="DisplayTracks">
+            <CascadingValue Value="_hasContent" Name="HasContent">
                 @Body
             </CascadingValue>
         </CascadingValue>
@@ -65,14 +87,36 @@
     private bool _hasSearched;
     private bool _isAuthenticated;
     private UserProfile? _userProfile;
+    private List<PlaylistDto> _playlists = [];
+    private string? _selectedPlaylistId;
+    private List<TrackDto> _playlistTracks = [];
+    private bool _loadingPlaylists;
+    private string _activeView = "Search";
+
+    // Unified track list for the content area
+    private List<TrackDto> _displayTracks => _activeView == "Playlist" ? _playlistTracks : _searchResults;
+    private bool _hasContent => _activeView == "Playlist" ? _playlistTracks.Count > 0 || _selectedPlaylistId is not null : _hasSearched;
 
     private async Task HandleSearchKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_query))
         {
+            _activeView = "Search";
             _searchResults = (await Player.SearchAsync(_query)).ToList();
             _hasSearched = true;
         }
+    }
+
+    private void ShowSearch()
+    {
+        _activeView = "Search";
+    }
+
+    private async Task SelectPlaylist(string playlistId)
+    {
+        _selectedPlaylistId = playlistId;
+        _activeView = "Playlist";
+        _playlistTracks = (await Player.GetPlaylistTracksAsync(playlistId)).ToList();
     }
 
     private async Task HandleProfileClick()
@@ -89,13 +133,28 @@
         await Auth.LogoutAsync();
         _isAuthenticated = false;
         _userProfile = null;
+        _playlists = [];
+        _playlistTracks = [];
+        _selectedPlaylistId = null;
+        _activeView = "Search";
     }
 
     private async Task LoadProfileAsync()
     {
         _isAuthenticated = await Auth.IsAuthenticatedAsync();
         if (_isAuthenticated)
+        {
             _userProfile = await Auth.GetUserProfileAsync();
+            await LoadPlaylistsAsync();
+        }
+    }
+
+    private async Task LoadPlaylistsAsync()
+    {
+        _loadingPlaylists = true;
+        StateHasChanged();
+        _playlists = (await Player.GetUserPlaylistsAsync()).ToList();
+        _loadingPlaylists = false;
     }
 
     private string ThemeClass => SourceManager.ActiveSource switch
@@ -117,7 +176,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnAuthStateChanged(bool _)
+    private async void OnAuthStateChanged(bool isAuthenticated)
     {
         await InvokeAsync(async () =>
         {

@@ -1,15 +1,15 @@
 @inject MusicPlayerService Player
 
-@if (_results.Count > 0)
+@if (_tracks.Count > 0)
 {
     <div style="margin-top: 20px;">
-        @foreach (var track in _results)
+        @foreach (var track in _tracks)
         {
             <TrackCard Track="track" />
         }
     </div>
 }
-else if (_hasSearched)
+else if (_hasContent)
 {
     <div class="welcome" style="height: auto; margin-top: 40px;">
         <p>No results found</p>
@@ -17,9 +17,9 @@ else if (_hasSearched)
 }
 
 @code {
-    [CascadingParameter(Name = "SearchResults")]
-    public List<TrackDto> _results { get; set; } = [];
+    [CascadingParameter(Name = "DisplayTracks")]
+    public List<TrackDto> _tracks { get; set; } = [];
 
-    [CascadingParameter(Name = "HasSearched")]
-    public bool _hasSearched { get; set; }
+    [CascadingParameter(Name = "HasContent")]
+    public bool _hasContent { get; set; }
 }

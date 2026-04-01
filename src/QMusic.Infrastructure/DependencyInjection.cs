@@ -51,7 +51,10 @@ public static class DependencyInjection
         });
 
         // Authentication — Google OAuth for YouTube user-level access (playlists, library)
-        services.AddSingleton<IAuthenticationService, GoogleOAuthService>();
+        // Register concrete type so YouTubeMusicProvider can inject it directly,
+        // and forward the interface so UI components use the abstraction.
+        services.AddSingleton<GoogleOAuthService>();
+        services.AddSingleton<IAuthenticationService>(sp => sp.GetRequiredService<GoogleOAuthService>());
 
         // Application services — SourceManagerService gets the configured default source
         services.AddSingleton(sp =>

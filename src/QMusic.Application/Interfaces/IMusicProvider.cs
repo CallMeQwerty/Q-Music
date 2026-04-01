@@ -1,3 +1,4 @@
+using QMusic.Application.DTOs;
 using QMusic.Domain.Entities;
 using QMusic.Domain.Enums;
 using QMusic.Domain.ValueObjects;
@@ -26,4 +27,12 @@ public interface IMusicProvider
     Task<Stream> GetAudioStreamAsync(TrackId id, CancellationToken ct = default);
     Task<string?> GetAlbumArtUrlAsync(TrackId id, CancellationToken ct = default);
     Task<bool> IsAvailableAsync(CancellationToken ct = default);
+
+    // Playlist support — default implementations return empty so providers
+    // that don't support playlists (like the Spotify stub) don't need to change.
+    Task<IEnumerable<PlaylistDto>> GetUserPlaylistsAsync(CancellationToken ct = default)
+        => Task.FromResult<IEnumerable<PlaylistDto>>([]);
+
+    Task<IEnumerable<Track>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
+        => Task.FromResult<IEnumerable<Track>>([]);
 }

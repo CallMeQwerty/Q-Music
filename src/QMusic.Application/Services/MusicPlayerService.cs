@@ -54,6 +54,25 @@ public sealed class MusicPlayerService
         await _playbackEngine.PlayAsync(stream, ct);
     }
 
+    public async Task<IEnumerable<PlaylistDto>> GetUserPlaylistsAsync(CancellationToken ct = default)
+    {
+        var provider = _sourceManager.GetActiveProvider();
+        if (provider is null)
+            return [];
+
+        return await provider.GetUserPlaylistsAsync(ct);
+    }
+
+    public async Task<IEnumerable<TrackDto>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
+    {
+        var provider = _sourceManager.GetActiveProvider();
+        if (provider is null)
+            return [];
+
+        var tracks = await provider.GetPlaylistTracksAsync(playlistId, ct);
+        return tracks.Select(MapToDto);
+    }
+
     public void Pause() => _playbackEngine.Pause();
     public void Resume() => _playbackEngine.Resume();
     public void Stop() => _playbackEngine.Stop();
