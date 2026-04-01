@@ -387,6 +387,8 @@ html, body {
     display: flex;
     align-items: center;
     gap: 12px;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .player-album-art {
