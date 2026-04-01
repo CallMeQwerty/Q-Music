@@ -1,4 +1,6 @@
+@implements IDisposable
 @inject MusicPlayerService Player
+@inject IJSRuntime JS
 
 @if (_tracks.Count > 0)
 {
@@ -6,6 +8,16 @@
         @foreach (var track in _tracks)
         {
             <TrackCard Track="track" />
+        }
+
+        @if (_isLoadingMore)
+        {
+            <div class="loading-more">Loading more...</div>
+        }
+
+        @if (_hasMoreTracks)
+        {
+            <div @ref="_sentinel" style="height: 1px;"></div>
         }
     </div>
 }
@@ -17,9 +29,52 @@ else if (_hasContent)
 }
 
 @code {
+    private ElementReference _sentinel;
+    private DotNetObjectReference<SearchView>? _dotNetRef;
+    private bool _observerAttached;
+
     [CascadingParameter(Name = "DisplayTracks")]
     public List<TrackDto> _tracks { get; set; } = [];
 
     [CascadingParameter(Name = "HasContent")]
     public bool _hasContent { get; set; }
+
+    [CascadingParameter(Name = "HasMoreTracks")]
+    public bool _hasMoreTracks { get; set; }
+
+    [CascadingParameter(Name = "LoadMoreCallback")]
+    public Func<Task>? _loadMoreCallback { get; set; }
+
+    [CascadingParameter(Name = "IsLoadingMore")]
+    public bool _isLoadingMore { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_hasMoreTracks && !_observerAttached)
+        {
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("infiniteScroll.observe", _sentinel, _dotNetRef);
+            _observerAttached = true;
+        }
+        else if (!_hasMoreTracks && _observerAttached)
+        {
+            await JS.InvokeVoidAsync("infiniteScroll.disconnect");
+            _observerAttached = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnScrolledToEnd()
+    {
+        if (_loadMoreCallback is not null && !_isLoadingMore)
+        {
+            await _loadMoreCallback();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+    }
 }

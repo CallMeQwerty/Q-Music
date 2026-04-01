@@ -78,7 +78,13 @@
     <main class="content">
         <CascadingValue Value="_displayTracks" Name="DisplayTracks">
             <CascadingValue Value="_hasContent" Name="HasContent">
-                @Body
+                <CascadingValue Value="_hasMoreTracks" Name="HasMoreTracks">
+                    <CascadingValue Value="_loadMoreCallback" Name="LoadMoreCallback">
+                        <CascadingValue Value="_isLoadingMore" Name="IsLoadingMore">
+                            @Body
+                        </CascadingValue>
+                    </CascadingValue>
+                </CascadingValue>
             </CascadingValue>
         </CascadingValue>
     </main>
@@ -98,6 +104,10 @@
     private bool _loadingPlaylists;
     private string _activeView = "Search";
     private HashSet<string> _emptyPlaylists = [];
+    private string? _nextPageToken;
+    private bool _isLoadingMore;
+    private bool _hasMoreTracks => _activeView == "Playlist" && _nextPageToken is not null;
+    private Func<Task>? _loadMoreCallback;
     private PlaylistSort _playlistSort = PlaylistSort.Default;
 
     private enum PlaylistSort { Default, AZ, ZA, TrackCount, RecentlyAdded }
@@ -178,15 +188,38 @@
     {
         _selectedPlaylistId = playlistId;
         _activeView = "Playlist";
-        _playlistTracks = (await Player.GetPlaylistTracksAsync(playlistId)).ToList();
+        _playlistTracks = [];
+        _nextPageToken = null;
+        _loadMoreCallback = LoadMorePlaylistTracks;
 
-        // If no music tracks found, remember this playlist as empty and hide it
-        if (_playlistTracks.Count == 0)
+        var result = await Player.GetPlaylistTracksPageAsync(playlistId);
+        _playlistTracks = result.Items.ToList();
+        _nextPageToken = result.NextPageToken;
+
+        // If no music tracks found on first page and no more pages, hide the playlist
+        if (_playlistTracks.Count == 0 && _nextPageToken is null)
         {
             _emptyPlaylists.Add(playlistId);
             _selectedPlaylistId = null;
+            _loadMoreCallback = null;
             _activeView = "Search";
         }
+    }
+
+    private async Task LoadMorePlaylistTracks()
+    {
+        if (_selectedPlaylistId is null || _nextPageToken is null || _isLoadingMore)
+            return;
+
+        _isLoadingMore = true;
+        StateHasChanged();
+
+        var result = await Player.GetPlaylistTracksPageAsync(_selectedPlaylistId, _nextPageToken);
+        _playlistTracks.AddRange(result.Items);
+        _nextPageToken = result.NextPageToken;
+
+        _isLoadingMore = false;
+        StateHasChanged();
     }
 
     private async Task HandleProfileClick()

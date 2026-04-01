@@ -63,14 +63,16 @@ public sealed class MusicPlayerService
         return await provider.GetUserPlaylistsAsync(ct);
     }
 
-    public async Task<IEnumerable<TrackDto>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
+    public async Task<PagedResult<TrackDto>> GetPlaylistTracksPageAsync(
+        string playlistId, string? pageToken = null, CancellationToken ct = default)
     {
         var provider = _sourceManager.GetActiveProvider();
         if (provider is null)
-            return [];
+            return new PagedResult<TrackDto>([], null);
 
-        var tracks = await provider.GetPlaylistTracksAsync(playlistId, ct);
-        return tracks.Select(MapToDto);
+        var result = await provider.GetPlaylistTracksPageAsync(playlistId, pageToken, ct);
+        var dtos = result.Items.Select(MapToDto).ToList();
+        return new PagedResult<TrackDto>(dtos, result.NextPageToken);
     }
 
     public void Pause() => _playbackEngine.Pause();

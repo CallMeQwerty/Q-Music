@@ -216,50 +216,42 @@ public sealed class YouTubeMusicProvider : IMusicProvider
         return playlists;
     }
 
-    public async Task<IEnumerable<Track>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
+    public async Task<PagedResult<Track>> GetPlaylistTracksPageAsync(
+        string playlistId, string? pageToken = null, CancellationToken ct = default)
     {
         var token = await _authService.GetAccessTokenAsync(ct);
         if (token is null)
-            return [];
+            return new PagedResult<Track>([], null);
 
-        // Step 1: Get all video IDs from the playlist
-        var videoIds = new List<string>();
-        string? pageToken = null;
+        // YouTube API caps at 50 items per page — fetch one page at a time
+        var url = $"playlistItems?part=snippet&playlistId={Uri.EscapeDataString(playlistId)}" +
+                  $"&maxResults=50&key={_options.ApiKey}" +
+                  (pageToken is not null ? $"&pageToken={pageToken}" : "");
 
-        do
-        {
-            var url = $"playlistItems?part=snippet&playlistId={Uri.EscapeDataString(playlistId)}" +
-                      $"&maxResults=50&key={_options.ApiKey}" +
-                      (pageToken is not null ? $"&pageToken={pageToken}" : "");
+        var response = await GetAsync<YouTubePlaylistItemListResponse>(url, token, ct);
+        if (response?.Items is null or { Count: 0 })
+            return new PagedResult<Track>([], null);
 
-            var response = await GetAsync<YouTubePlaylistItemListResponse>(url, token, ct);
-            if (response?.Items is null)
-                break;
-
-            videoIds.AddRange(response.Items
-                .Select(i => i.Snippet.ResourceId.VideoId)
-                .Where(id => !string.IsNullOrEmpty(id)));
-
-            pageToken = response.NextPageToken;
-        } while (pageToken is not null);
+        var videoIds = response.Items
+            .Select(i => i.Snippet.ResourceId.VideoId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList();
 
         if (videoIds.Count == 0)
-            return [];
+            return new PagedResult<Track>([], response.NextPageToken);
 
-        // Step 2: Batch fetch video details (durations, full metadata) — 50 per call
-        // Filter to Music category (categoryId: 10) to exclude non-music content
-        var tracks = new List<Track>();
-        foreach (var batch in videoIds.Chunk(50))
-        {
-            var videosUrl = $"videos?part=contentDetails,snippet&id={string.Join(',', batch)}&key={_options.ApiKey}";
-            var videosResponse = await GetAsync<YouTubeVideoListResponse>(videosUrl, ct);
-            if (videosResponse?.Items is not null)
-                tracks.AddRange(videosResponse.Items
-                    .Where(v => v.Snippet.CategoryId == "10")
-                    .Select(MapToTrack));
-        }
+        // Fetch video details, filter to Music category (categoryId: 10)
+        var videosUrl = $"videos?part=contentDetails,snippet&id={string.Join(',', videoIds)}&key={_options.ApiKey}";
+        var videosResponse = await GetAsync<YouTubeVideoListResponse>(videosUrl, ct);
 
-        return tracks;
+        var tracks = videosResponse?.Items is not null
+            ? videosResponse.Items
+                .Where(v => v.Snippet.CategoryId == "10")
+                .Select(MapToTrack)
+                .ToList()
+            : [];
+
+        return new PagedResult<Track>(tracks, response.NextPageToken);
     }
 
     private static Track MapToTrack(YouTubeVideoItem item)

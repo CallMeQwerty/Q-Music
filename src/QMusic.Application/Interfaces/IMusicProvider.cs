@@ -33,6 +33,6 @@ public interface IMusicProvider
     Task<IEnumerable<PlaylistDto>> GetUserPlaylistsAsync(CancellationToken ct = default)
         => Task.FromResult<IEnumerable<PlaylistDto>>([]);
 
-    Task<IEnumerable<Track>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default)
-        => Task.FromResult<IEnumerable<Track>>([]);
+    Task<PagedResult<Track>> GetPlaylistTracksPageAsync(string playlistId, string? pageToken = null, CancellationToken ct = default)
+        => Task.FromResult(new PagedResult<Track>([], null));
 }
